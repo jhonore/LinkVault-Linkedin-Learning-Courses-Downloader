@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./lib/ipc";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { open } from "@tauri-apps/plugin-dialog";
-import { toast } from "sonner";
+import { toast } from "./lib/notify";
+import { nowMs, recordDiagnostic } from "./lib/diagnostics";
 import {
   ArrowLeft,
   CalendarClock,
@@ -489,6 +490,7 @@ export default function App() {
     nextView: AppView,
     options: { preserveClippingContext?: boolean } = {}
   ) => {
+    const navigationStartedAt = nowMs();
     let allowed = false;
     const task = navigationQueueRef.current.then(async () => {
       const flush = clippingFlushRef.current;
@@ -507,7 +509,18 @@ export default function App() {
       allowed = true;
     });
     navigationQueueRef.current = task.then(() => undefined, () => undefined);
-    return task.then(() => allowed);
+    return task.then(() => {
+      // Records refused navigations too: "I clicked and nothing happened" is
+      // invisible in the UI but is exactly what the log should surface.
+      recordDiagnostic({
+        source: "ui",
+        name: "navigate",
+        durationMs: Math.round(nowMs() - navigationStartedAt),
+        ok: allowed,
+        detail: allowed ? nextView : `blocked:${nextView}`
+      });
+      return allowed;
+    });
   }, []);
 
   const clippingNavigation = useNewspaperClippingNavigation({

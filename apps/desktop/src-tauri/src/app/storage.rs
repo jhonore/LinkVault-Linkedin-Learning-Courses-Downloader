@@ -73,6 +73,17 @@ pub fn resolve_newspaper_clippings_root() -> Result<PathBuf, StoragePathError> {
     ensure_writable_child_dir(&data_dir, root)
 }
 
+const DIAGNOSTICS_LOG_DIR_NAME: &str = "logs";
+
+/// Resolve the application-managed root for diagnostic session logs. Same
+/// containment guarantees as the clipping root: the directory must sit directly
+/// beneath LinkVaultData and must not be reached through a symlink.
+pub fn resolve_diagnostics_log_root() -> Result<PathBuf, StoragePathError> {
+    let data_dir = resolve_data_dir()?;
+    let root = data_dir.join(DIAGNOSTICS_LOG_DIR_NAME);
+    ensure_writable_child_dir(&data_dir, root)
+}
+
 fn data_dir_for_exe_path(exe_path: &Path) -> Result<PathBuf, StoragePathError> {
     let exe_dir = exe_path
         .parent()
@@ -109,7 +120,7 @@ fn ensure_writable_data_dir(path: PathBuf) -> Result<PathBuf, StoragePathError> 
     Ok(path)
 }
 
-fn ensure_writable_child_dir(
+pub(crate) fn ensure_writable_child_dir(
     trusted_parent: &Path,
     path: PathBuf,
 ) -> Result<PathBuf, StoragePathError> {

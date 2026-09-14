@@ -1,5 +1,5 @@
 import { type DragEvent as ReactDragEvent, useEffect, useMemo, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../lib/ipc";
 import { listen } from "@tauri-apps/api/event";
 import { open } from "@tauri-apps/plugin-dialog";
 import {
@@ -15,7 +15,7 @@ import {
   RotateCcw,
   Trash2,
 } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "../../lib/notify";
 import { ensureDestination, parseDestination } from "../../lib/destinations";
 import { writeNewspaperDestination } from "../../lib/newspaper/preferences";
 import { Button, Checkbox, Input, Select, StatusBadge, Switch, Tooltip } from "../primitives";

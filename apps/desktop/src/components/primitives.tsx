@@ -2,7 +2,8 @@ import { forwardRef, useEffect, useId, useLayoutEffect, useRef, useState } from 
 import type { ButtonHTMLAttributes, HTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown, LoaderCircle, X } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "../lib/notify";
+import { recordDiagnostic } from "../lib/diagnostics";
 import { cn } from "../lib/cn";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -29,7 +30,31 @@ const buttonSizes = {
   "icon-sm": "h-8 w-8 p-0"
 };
 
-export function Button({ variant = "secondary", size = "md", className, children, loading = false, loadingLabel, disabled, ...props }: ButtonProps) {
+/**
+ * Best-effort accessible name for a click record. `aria-label` first, then
+ * plain-text children. Buttons whose label is entirely an icon or an element
+ * fall back to "unlabelled" rather than walking the React tree — the log is a
+ * diagnostic, not a screen reader.
+ */
+function clickLabel(children: ReactNode, ariaLabel: unknown): string {
+  if (typeof ariaLabel === "string" && ariaLabel.trim()) return ariaLabel.trim();
+  if (typeof children === "string" && children.trim()) return children.trim();
+  if (Array.isArray(children)) {
+    const text = children
+      .filter((node): node is string => typeof node === "string")
+      .join(" ")
+      .trim();
+    if (text) return text;
+  }
+  return "unlabelled";
+}
+
+function recordClick(component: string, label: string): void {
+  recordDiagnostic({ source: "ui", name: "click", detail: `${component}:${label}` });
+}
+
+export function Button({ variant = "secondary", size = "md", className, children, loading = false, loadingLabel, disabled, onClick, ...props }: ButtonProps) {
+  const label = clickLabel(children, props["aria-label"]);
   return (
     <button
       className={cn(
@@ -44,6 +69,10 @@ export function Button({ variant = "secondary", size = "md", className, children
       data-loading={loading || undefined}
       disabled={disabled || loading}
       {...props}
+      onClick={(event) => {
+        recordClick("button", label);
+        onClick?.(event);
+      }}
     >
       {loading ? <LoaderCircle aria-hidden="true" className="lv-button-spinner" /> : null}
       {loading && loadingLabel ? loadingLabel : children}
@@ -160,6 +189,7 @@ export function SidebarItem({
   active = false,
   disabled = false,
   className,
+  onClick,
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & {
   icon?: ReactNode;
@@ -173,6 +203,10 @@ export function SidebarItem({
       className={cn("lv-nav-row", active && "active", disabled && "disabled", className)}
       aria-disabled={disabled || undefined}
       {...props}
+      onClick={(event) => {
+        recordClick("sidebar", clickLabel(children, props["aria-label"]));
+        onClick?.(event);
+      }}
     >
       {icon}
       <span className="lv-nav-label">{children}</span>

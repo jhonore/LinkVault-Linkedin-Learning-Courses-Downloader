@@ -3,7 +3,7 @@
 // All commands return `Result<T, String>` per Tauri 2 conventions; the
 // invoke wrappers surface the error string to the caller.
 
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../ipc";
 import type {
   AuthMethodRequest,
   CourseraBootstrapState,

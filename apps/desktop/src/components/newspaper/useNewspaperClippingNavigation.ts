@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "../../lib/notify";
 import type { NewspaperClippingDetail } from "./newspaper-api";
 import { readerTargetFromClipping, type NewspaperReaderSourceTarget } from "./newspaper-navigation";
 

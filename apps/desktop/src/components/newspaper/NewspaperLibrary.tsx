@@ -1,9 +1,9 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { FolderOpen, RotateCcw, Search } from "lucide-react";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../lib/ipc";
 import { listen } from "@tauri-apps/api/event";
-import { toast } from "sonner";
+import { toast } from "../../lib/notify";
 import { Button, Input, Select, StatusBadge } from "../primitives";
 import {
   ensureThumbnail,

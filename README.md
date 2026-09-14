@@ -198,6 +198,27 @@ instead of sitting next to the executable. The portable default would land insid
 `src-tauri/target`, where `make clean` would destroy it. The Makefile exports
 `LINKVAULT_DATA_DIR` for you; set it yourself to move the archive elsewhere.
 
+### Diagnostic session log
+
+Off by default. When enabled, LinkedVault writes one JSONL file per launch under
+`<data dir>/logs`, recording navigation, button presses, every call to the Rust
+backend with its duration and outcome, and every toast. It is meant to be read
+after the fact — by you or by an assistant — to work out what happened without
+reproducing it.
+
+```bash
+make dev-debug     # run with the log enabled
+make logs          # print the newest session
+make logs-path     # just the path
+```
+
+The ten most recent sessions are kept; older ones are deleted at startup.
+
+Secrets never reach the file. Events have no free-form payload field, and every
+string is scrubbed for session cookies, tokens and authorization headers before
+it is written. Even so, the log does record which screens you opened and which
+actions you took, so treat a session file as personal before sharing it.
+
 ### Developer test: Newspaper Clippings
 
 Run this test in the native Tauri window, not the frontend-only browser preview.

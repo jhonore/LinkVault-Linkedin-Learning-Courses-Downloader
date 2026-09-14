@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ClipboardEvent, type FocusEvent, type KeyboardEvent, type PointerEvent } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { toast } from "sonner";
+import { toast } from "../../lib/notify";
 import {
   Folder,
   FolderOpen,

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { toast } from "sonner";
+import { toast } from "../../lib/notify";
 import { AlertTriangle, Check, Clipboard, LoaderCircle, MoreHorizontal, RotateCcw } from "lucide-react";
 import { Button, Input } from "../primitives";
 import {

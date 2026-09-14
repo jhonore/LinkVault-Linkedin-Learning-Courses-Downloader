@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../lib/ipc";
 
 export type NewspaperLibraryStatus = "all" | "completed" | "partial" | "optimizing";
 export type NewspaperEditionKind = "all" | "daily" | "weekly" | "special";

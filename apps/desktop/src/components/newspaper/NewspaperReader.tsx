@@ -20,8 +20,8 @@ import {
   useState
 } from "react";
 import { createPortal } from "react-dom";
-import { invoke } from "@tauri-apps/api/core";
-import { toast } from "sonner";
+import { invoke } from "../../lib/ipc";
+import { toast } from "../../lib/notify";
 import { Button, Select } from "../primitives";
 import {
   createNewspaperClipping,

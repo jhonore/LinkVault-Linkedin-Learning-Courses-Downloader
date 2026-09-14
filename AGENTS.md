@@ -125,6 +125,32 @@ pre-existing warnings — do not add new ones, and do not fail the tree on
 
 A bug fix should include a regression test that would have failed before the fix.
 
+## Diagnostic session log
+
+`app/diagnostics_log.rs` writes one JSONL file per launch under
+`<data dir>/logs`, but only when `LINKVAULT_DEBUG_LOG` is `1`/`on`/`true`. It is
+off by default and starts no thread when off. `make dev-debug` enables it,
+`make logs` prints the newest session.
+
+Three invariants, in order of importance:
+
+- **No free-text payload field.** An event is a fixed set of named slots
+  (`src`, `ev`, `ms`, `ok`, `err`, `detail`). Do not add an open-ended payload
+  or argument dump. This is the same structural discipline that keeps
+  `DatabaseDiagnosticEvent` free of secrets, and it is why the log cannot leak a
+  session cookie even when a caller is careless.
+- **Redaction lives in the writer, not at the call sites.** Every string is
+  scrubbed by `redact` before it is written, including error text arriving from
+  the frontend. Extend the pattern there, with a test, rather than sanitising at
+  a new call site.
+- **Emitters never block.** The channel is bounded and drops on overflow. Do not
+  route diagnostics through `DatabaseWriter::execute`, which blocks its caller.
+
+On the frontend, do not import `invoke` from `@tauri-apps/api/core` or `toast`
+from `sonner` directly. Use `src/lib/ipc.ts` and `src/lib/notify.ts`, which
+carry the instrumentation; importing the originals silently creates a blind
+spot.
+
 ## UI changes
 
 - Preserve unrelated dirty work and generated files.

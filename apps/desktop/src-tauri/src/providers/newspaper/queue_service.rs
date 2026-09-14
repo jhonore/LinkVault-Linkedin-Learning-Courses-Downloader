@@ -135,7 +135,17 @@ pub(crate) fn spawn_per_edition_optimization(app: tauri::AppHandle, job_status: 
         let result =
             run_optimization_pass(&app, state.inner(), OptimizationRunOptions::default()).await;
         if let Err(error) = result {
-            eprintln!("per-edition optimization trigger failed after {job_status} job: {error}");
+            // Was the crate's only production print. stderr is invisible in a
+            // packaged desktop app, so this failure has never been observable
+            // to anyone but a developer running from a terminal.
+            crate::diagnostics_log::record(crate::diagnostics_log::Event {
+                source: crate::diagnostics_log::Source::Rust,
+                name: "newspaper.per_edition_optimization".to_string(),
+                duration_ms: None,
+                ok: Some(false),
+                error: Some(error.to_string()),
+                detail: Some(format!("after {job_status} job")),
+            });
         }
     });
 }

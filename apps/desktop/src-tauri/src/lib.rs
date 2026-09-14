@@ -16,7 +16,9 @@ pub mod workflow;
 use app::cooperative_exit::{CooperativeExit, ExitReason, WaitOutcome};
 use app::updates as app_updates;
 use app::window_activation::{activate_existing_instance, restore_main_window, show_main_window};
-pub use app::{database as cache, dpapi, managed_process, security, shell, storage};
+pub use app::{
+    database as cache, diagnostics_log, dpapi, managed_process, security, shell, storage,
+};
 pub use providers::linkedin::{
     artifact_downloader, auth, browser_cookies, course, download_orchestrator, exercise_archive,
     live_clients, quality, quiz_hints, token_store,
@@ -128,6 +130,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app_updates::check_for_app_update,
             app_updates::install_app_update,
+            diagnostics_log::log_ui_events,
+            diagnostics_log::diagnostics_log_path,
             resolve_cooperative_exit,
             commands::bootstrap_state,
             commands::linkedin_queue_busy,
@@ -237,6 +241,12 @@ pub fn run() {
             if let Some(data_dir) = db_path.parent() {
                 let legacy_app_data = app.path().app_data_dir()?;
                 storage::migrate_legacy_app_data(&legacy_app_data, data_dir)?;
+            }
+            if let Some(log_path) = diagnostics_log::init() {
+                diagnostics_log::record(
+                    diagnostics_log::Event::new(diagnostics_log::Source::Rust, "app.start")
+                        .with_detail(log_path.display().to_string()),
+                );
             }
             let diagnostics = app::database_diagnostics::DatabaseDiagnostics::default();
             let (connection, _initialization) =
@@ -424,6 +434,7 @@ pub fn run() {
             }
         }
         tauri::RunEvent::Exit => {
+            flush_database_diagnostics(handle);
             handle.state::<workflow::WorkflowRuntime>().shutdown();
             handle
                 .state::<newspaper::clipping_service::ClippingService>()
@@ -434,4 +445,54 @@ pub fn run() {
         }
         _ => {}
     });
+}
+
+/// Drain the in-memory SQLite diagnostics ring into the session log on exit.
+///
+/// `DatabaseWriter` already times every task and classifies every failure, but
+/// that ring is bounded and in-process: without this it dies with the app. A
+/// summary plus the individual failures is enough to spot a slow or contended
+/// writer after the fact.
+fn flush_database_diagnostics(handle: &tauri::AppHandle) {
+    use app::database_diagnostics::{DatabaseDiagnostics, DatabaseDiagnosticOutcome};
+
+    if diagnostics_log::current_path().is_none() {
+        return;
+    }
+    let events = handle.state::<DatabaseDiagnostics>().snapshot();
+    if events.is_empty() {
+        return;
+    }
+
+    let mut failures = 0usize;
+    let mut slowest_ms = 0u64;
+    let mut deepest_queue = 0usize;
+    for event in &events {
+        slowest_ms = slowest_ms.max(event.elapsed_ms);
+        deepest_queue = deepest_queue.max(event.queue_depth);
+        if event.outcome == DatabaseDiagnosticOutcome::Error {
+            failures += 1;
+            diagnostics_log::record(
+                diagnostics_log::Event {
+                    source: diagnostics_log::Source::Rust,
+                    name: format!("database.{}", event.operation),
+                    duration_ms: Some(event.elapsed_ms),
+                    ok: Some(false),
+                    error: event
+                        .error_class
+                        .map(|class| format!("{class:?}"))
+                        .or_else(|| Some("unclassified".to_string())),
+                    detail: Some(format!("queue_depth={}", event.queue_depth)),
+                },
+            );
+        }
+    }
+
+    diagnostics_log::record(
+        diagnostics_log::Event::new(diagnostics_log::Source::Rust, "database.summary")
+            .with_detail(format!(
+                "events={} failures={failures} slowest_ms={slowest_ms} max_queue_depth={deepest_queue}",
+                events.len()
+            )),
+    );
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../lib/ipc";
 import { open } from "@tauri-apps/plugin-dialog";
-import { toast } from "sonner";
+import { toast } from "../../lib/notify";
 import {
   CircleHelp,
   Eye,

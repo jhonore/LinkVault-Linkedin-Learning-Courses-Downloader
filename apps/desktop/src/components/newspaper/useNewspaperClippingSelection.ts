@@ -1,6 +1,6 @@
 import { listen } from "@tauri-apps/api/event";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { toast } from "../../lib/notify";
 import {
   canListenForClippingInstanceActivation,
   listenForClippingInstanceActivation

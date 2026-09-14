@@ -1,7 +1,7 @@
 import { useEffect, type RefObject } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "../../lib/ipc";
 import { listen } from "@tauri-apps/api/event";
-import { toast } from "sonner";
+import { toast } from "../../lib/notify";
 import type { ClippingFlush } from "./NewspaperClippings";
 import { ClippingNoteExitPreparation } from "./clipping-note-exit-preparation";
 
