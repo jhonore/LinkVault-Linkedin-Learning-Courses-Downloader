@@ -78,10 +78,22 @@ Your downloads are saved into the folder you picked. Your saved session is prote
 
 ## Requirements
 
-- Node.js with npm (Node 20.19+ or 22.12+ recommended)
+Both platforms:
+
+- Node.js with npm (Node 20.19+ or 22.12+ recommended; Node 22.6+ is needed by
+  the `--experimental-strip-types` verify scripts)
 - Rust toolchain (MSRV **1.77.2**)
+
+Windows, the supported target:
+
 - Microsoft C++ Build Tools or Visual Studio Build Tools
 - Microsoft WebView2 Runtime
+
+macOS, development only (see [Run Locally (macOS)](#run-locally-macos)):
+
+- Xcode Command Line Tools (`xcode-select --install`); `rusqlite` is built
+  bundled and `webp` compiles C sources, so a C compiler is required
+- Nothing further: Tauri 2 uses the system WKWebView
 
 ## Technology
 
@@ -152,6 +164,39 @@ http://127.0.0.1:1420
 ```
 
 Stop the development app with `Ctrl+C` in the terminal that launched it.
+
+### Run Locally (macOS)
+
+macOS is a **development-only** target: there is no macOS CI, no `.app`/`.dmg`
+bundle, and two providers do not function. Check the support table before you
+start.
+
+```bash
+git clone https://github.com/Howard-Starfield/LinkVault-Linkedin-Learning-Courses-Downloader.git LinkedVault
+cd LinkedVault
+make doctor     # checks node, rust, Xcode CLT, Chrome
+make install
+make dev
+```
+
+`make` is the root entry point on every platform; `make help` lists every
+target. The `npm run ...` commands elsewhere in this document still work, because
+the root `package.json` forwards to the same targets.
+
+#### What works on macOS
+
+| Area | Works | Notes |
+| --- | --- | --- |
+| Window, UI, tray, "open folder" button | Yes | |
+| SQLite, migrations, clipping notes, crop pipeline | Yes | |
+| Newspaper provider (World Journal) | Yes | |
+| LinkedIn and Coursera sessions | Partly | Pasting a session token works: `app::dpapi` now seals it with AES-256-GCM under a key held in the login keychain. Importing cookies from an installed browser does **not** — Chromium cookie decryption needs DPAPI and returns nothing off Windows. |
+| YouTube provider | **No** | Helper binaries are pinned to the `x86_64-pc-windows-msvc` triple and the process supervisor is Windows-only. |
+
+On macOS the archive is written to `~/Library/Application Support/LinkedVault`
+instead of sitting next to the executable. The portable default would land inside
+`src-tauri/target`, where `make clean` would destroy it. The Makefile exports
+`LINKVAULT_DATA_DIR` for you; set it yourself to move the archive elsewhere.
 
 ### Developer test: Newspaper Clippings
 

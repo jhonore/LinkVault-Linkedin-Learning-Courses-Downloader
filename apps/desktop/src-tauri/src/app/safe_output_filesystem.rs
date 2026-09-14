@@ -3129,6 +3129,7 @@ mod tests {
         assert!(!attempt_path.exists());
     }
 
+    #[cfg(windows)]
     #[test]
     fn discard_fails_closed_on_nested_content() {
         let temp = tempdir().unwrap();
@@ -3144,6 +3145,27 @@ mod tests {
             root.discard_attempt_lease(attempt),
             Err(SafeOutputError::OutputAttemptCleanupPermanentUnproven { .. })
         ));
+        assert!(attempt_path.exists());
+        assert_eq!(fs::read(outside).unwrap(), b"keep");
+    }
+
+    #[cfg(not(windows))]
+    #[test]
+    fn discard_fails_closed_on_nested_content() {
+        let temp = tempdir().unwrap();
+        let root = validate_output_root(temp.path()).unwrap();
+        let attempt = root
+            .staging_attempt_lease("occurrence-1", "artifact-1")
+            .unwrap();
+        let attempt_path = attempt.path().to_path_buf();
+        fs::create_dir(attempt.path().join("nested")).unwrap();
+        let outside = temp.path().join("outside.txt");
+        fs::write(&outside, b"keep").unwrap();
+        // The non-Windows path clears leaves with `fs::remove_file`, which
+        // refuses a directory, so the error variant differs from the Windows
+        // cleanup errors. The fail-closed contract asserted below is the same:
+        // the attempt survives and nothing outside it is touched.
+        assert!(root.discard_attempt_lease(attempt).is_err());
         assert!(attempt_path.exists());
         assert_eq!(fs::read(outside).unwrap(), b"keep");
     }

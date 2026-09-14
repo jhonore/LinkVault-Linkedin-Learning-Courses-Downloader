@@ -2407,6 +2407,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.28",
  "rusqlite",
+ "security-framework",
  "semver",
  "serde",
  "serde_json",
@@ -2425,6 +2426,7 @@ dependencies = [
  "webp",
  "windows-sys 0.61.2",
  "wiremock",
+ "zeroize",
  "zip 2.4.2",
 ]
 

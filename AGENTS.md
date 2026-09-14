@@ -100,12 +100,23 @@ drift. Follow them whenever editing `apps/desktop/src-tauri`.
 
 ### Validation after Rust changes
 
-From the repo root, using this crate's manifest (not a workspace):
+From the repo root, using this crate's manifest (not a workspace). The root
+`Makefile` is the canonical entry point; the root `package.json` is a shim that
+forwards to it, so either column works:
 
-- `npm run cargo:clippy`
-- `npm run cargo:test`
-- plus `npm run verify:architecture` / `npm run verify:persistence` when those
+- `make cargo-clippy` / `npm run cargo:clippy`
+- `make cargo-test` / `npm run cargo:test`
+- plus `make verify-architecture` / `make verify-persistence` when those
   boundaries moved
+
+Run `make help` for the full target list, and `make npm SCRIPT=<name>` for the
+`apps/desktop` scripts that have no root passthrough.
+
+`lib.rs` carries `#![cfg_attr(windows, deny(unused))]`, not a bare
+`deny(unused)`. The Windows-only helper-temp sandbox and Job Object supervisor
+are unreachable on other targets, so the unconditional lint made the crate
+uncompilable off Windows. Keep the lint strict on Windows — do not downgrade it
+there, and do not replace it with a blanket `allow(dead_code)`.
 
 `cargo fmt --check` is not yet a green baseline (`docs/work-orders/rustfmt-baseline.md`).
 Format only files you touch; do not reformat the crate. Clippy currently reports

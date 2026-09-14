@@ -1453,7 +1453,12 @@ export default function App() {
           setToken("");
           setQueueNeedsSessionRefresh(false);
         } catch (error) {
-          toast.error("Token validation failed", { description: String(error) });
+          toast.error(
+            isSavedTokenStorageError(error)
+              ? "Could not save LinkedIn session"
+              : "Token validation failed",
+            { description: String(error) }
+          );
           return;
         } finally {
           setIsValidatingToken(false);
@@ -4282,6 +4287,14 @@ async function parseLinkedInCourseUrls(input: string) {
 
 function isTauriRuntime() {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
+// save_li_at_token validates against LinkedIn first and only then persists, so
+// a storage failure here means the token itself was accepted. Reporting both as
+// "validation failed" sent people looking for a bad cookie when the real cause
+// was the token store.
+function isSavedTokenStorageError(error: unknown) {
+  return String(error).toLowerCase().includes("token storage");
 }
 
 function isLinkedInSessionError(error: unknown) {

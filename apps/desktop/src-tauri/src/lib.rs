@@ -1,4 +1,10 @@
-#![deny(unused)]
+// Windows-first crate. The helper-temp sandbox (`app::safe_output_filesystem`)
+// and the Job Object supervisor (`app::managed_process`) back the Windows-only
+// helper-process path, so on other targets their support items are legitimately
+// unreachable and `deny(unused)` turns them into hard errors. Keep the lint
+// strict on the platform CI actually builds, rather than weakening it for every
+// target with a blanket `allow(dead_code)`.
+#![cfg_attr(windows, deny(unused))]
 
 mod app;
 #[cfg(feature = "crop-baseline")]

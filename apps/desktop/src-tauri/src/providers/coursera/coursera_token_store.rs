@@ -76,7 +76,8 @@ pub fn load_token(path: &Path) -> CourseraTokenStoreResult<String> {
     let protected = BASE64
         .decode(encoded.trim())
         .map_err(|_| CourseraTokenStoreError::Decode)?;
-    let bytes = crate::dpapi::unprotect_bytes(&protected).map_err(map_dpapi_error)?;
+    let bytes = crate::dpapi::unprotect_bytes(&protected, COURSERA_TOKEN_DESCRIPTION)
+        .map_err(map_dpapi_error)?;
     let token = String::from_utf8(bytes)?;
     let trimmed = token.trim().to_string();
     if trimmed.is_empty() {
@@ -165,7 +166,14 @@ mod tests {
         assert!(matches!(result, Err(CourseraTokenStoreError::MissingToken)));
     }
 
-    #[cfg(windows)]
+    // Also meaningful on macOS now that a keychain backend exists. Kept out of
+    // the default macOS run because it reaches the real login keychain; Windows
+    // behaviour is unchanged.
+    #[cfg(any(windows, target_os = "macos"))]
+    #[cfg_attr(
+        target_os = "macos",
+        ignore = "uses the login keychain; run explicitly with --ignored"
+    )]
     #[test]
     fn stores_coursera_token_encrypted_without_plaintext_bytes() {
         let unique = format!(

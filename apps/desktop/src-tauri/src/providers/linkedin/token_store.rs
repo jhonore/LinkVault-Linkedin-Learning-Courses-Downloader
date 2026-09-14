@@ -3,6 +3,10 @@ use std::fs;
 use std::path::Path;
 use thiserror::Error;
 
+/// Bound as AEAD associated data on macOS, so this string is part of the
+/// on-disk format: changing it invalidates every stored token.
+const LINKEDIN_TOKEN_DESCRIPTION: &str = "LinkedVault LinkedIn session";
+
 #[derive(Debug, Error)]
 pub enum TokenStoreError {
     #[error("LinkedIn token is empty")]
@@ -35,7 +39,7 @@ pub fn save_token(path: &Path, token: &str) -> Result<(), TokenStoreError> {
         fs::create_dir_all(parent)?;
     }
 
-    let protected = crate::dpapi::protect_bytes(trimmed.as_bytes(), "LinkedVault LinkedIn session")
+    let protected = crate::dpapi::protect_bytes(trimmed.as_bytes(), LINKEDIN_TOKEN_DESCRIPTION)
         .map_err(map_dpapi_error)?;
     fs::write(path, BASE64.encode(protected))?;
     Ok(())
@@ -74,7 +78,7 @@ fn map_dpapi_error(error: crate::dpapi::DpapiError) -> TokenStoreError {
 }
 
 fn unprotect_token(input: &[u8]) -> Result<Vec<u8>, TokenStoreError> {
-    crate::dpapi::unprotect_bytes(input).map_err(map_dpapi_error)
+    crate::dpapi::unprotect_bytes(input, LINKEDIN_TOKEN_DESCRIPTION).map_err(map_dpapi_error)
 }
 
 #[cfg(test)]
@@ -88,7 +92,14 @@ mod tests {
         assert!(!has_saved_token(&path));
     }
 
-    #[cfg(windows)]
+    // Also meaningful on macOS now that a keychain backend exists. Kept out of
+    // the default macOS run because it reaches the real login keychain; Windows
+    // behaviour is unchanged.
+    #[cfg(any(windows, target_os = "macos"))]
+    #[cfg_attr(
+        target_os = "macos",
+        ignore = "uses the login keychain; run explicitly with --ignored"
+    )]
     #[test]
     fn stores_token_encrypted_without_plaintext_bytes() {
         let unique = format!(

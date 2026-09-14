@@ -70,6 +70,13 @@ tokio = { version = "1", features = ["fs", "rt-multi-thread", "macros", "time"] 
 url = "2"
 unicode-normalization = "0.1.25"
 webp = "0.3"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+tauri-plugin-updater = "2"
+
+# Windows-only. Previously declared unconditionally, which pulled the Win32
+# binding crate into every non-Windows build even though all of its uses are
+# `#[cfg(windows)]`.
+[target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = [
   "Win32_Foundation",
   "Win32_Security",
@@ -82,8 +89,13 @@ windows-sys = { version = "0.61", features = [
   "Win32_System_SystemInformation",
   "Win32_System_Threading",
 ] }
-zip = { version = "2", default-features = false, features = ["deflate"] }
-tauri-plugin-updater = "2"
+
+# macOS-only. `security-framework` is already compiled on this target as a
+# transitive dependency of reqwest (via rustls-native-certs), so declaring it
+# directly adds no build weight. It backs the keychain half of `app::dpapi`.
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = "3"
+zeroize = "1"
 
 [dev-dependencies]
 wiremock = "0.6"
